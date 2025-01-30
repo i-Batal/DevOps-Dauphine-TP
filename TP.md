@@ -53,8 +53,18 @@ Fait dans le fichier main.tf du dossier terraform
       }
       ```
 4. Lancer `terraform plan`, vérifier les changements puis appliquer les changements avec `terraform apply`
+
+Tout marche parfaitement
+
 5. Vérifier que notre utilisateur existe bien : https://console.cloud.google.com/sql/instances/main-instance/users (veiller à bien séléctionner le projet GCP sur lequel vous avez déployé vos ressources)
+
+Oui l'utilisateur existe bien
+
 6. Rendez-vous sur https://console.cloud.google.com/sql/instances/main-instance/databases. Quelles sont les base de données présentes sur votre instance `main-instance` ? Quels sont les types ?
+
+![types](./images/Capture%20d’écran%202025-01-30%20à%2009.35.20.png)
+Il y a des types systemes et des types utilisateurs.
+
 
 ## Partie 2 : Docker
 
