@@ -54,11 +54,11 @@ Fait dans le fichier main.tf du dossier terraform
       ```
 4. Lancer `terraform plan`, vérifier les changements puis appliquer les changements avec `terraform apply`
 
-Tout marche parfaitement
+Tout marche parfaitement !
 
 5. Vérifier que notre utilisateur existe bien : https://console.cloud.google.com/sql/instances/main-instance/users (veiller à bien séléctionner le projet GCP sur lequel vous avez déployé vos ressources)
 
-Oui l'utilisateur existe bien
+Oui l'utilisateur existe bien : wordpress
 
 6. Rendez-vous sur https://console.cloud.google.com/sql/instances/main-instance/databases. Quelles sont les base de données présentes sur votre instance `main-instance` ? Quels sont les types ?
 
@@ -161,8 +161,16 @@ Notre but, ne l'oublions pas est de déployer wordpress sur Cloud Run puis Kuber
 1. Rendez vous sur : https://console.cloud.google.com/sql/instances/main-instance/connections/summary?
    L'instance de base données dispose d'une `Adresse IP publique`. Nous allons nous servir de cette valeur pour configurer notre image docker Wordpress qui s'y connectera.
 
+   Oui, je modifie le dockerfile en mettant la vrai adresse IP : 34.122.35.85 dans la variable d'env HOST
+
 2. Reprendre le Dockerfile de la [Partie 2](#partie-2--docker) et le modifier pour que `WORDPRESS_DB_HOST` soit défini avec l'`Adresse IP publique` de notre instance de base de donnée.
+
+Fait ! 
+
 3. Reconstruire notre image docker et la pousser sur notre Artifact Registry en utilisant cloud build
+
+Je fais ça en rebuildant : gcloud builds submit --config=cloudbuild.yaml .
+
 
 ### Déployer notre image docker sur Cloud Run
 
@@ -193,10 +201,23 @@ Notre but, ne l'oublions pas est de déployer wordpress sur Cloud Run puis Kuber
 
    Appliquer les changements sur votre projet gcp avec les commandes terraform puis rendez vous sur https://console.cloud.google.com/run pendant le déploiement.
 
+   Tout est fait dans le main.tf
+
 2. Observer les journaux de Cloud Run (logs) sur : https://console.cloud.google.com/run/detail/us-central1/serveur-wordpress/logs.
    1. Véirifer la présence de l'entrée `No 'wp-config.php' found in /var/www/html, but 'WORDPRESS_...' variables supplied; copying 'wp-config-docker.php' (WORDPRESS_DB_HOST WORDPRESS_DB_PASSWORD WORDPRESS_DB_USER)`
+
+   On a bien cette entrée :
+   ![Image-wordpress-custom](./images/Capture%20d’écran%202025-01-30%20à%2010.16.06.png) 
+
    2. Au bout de 5 min, que se passe-t-il ? 🤯🤯🤯
+
+   ça marche ! (pas encore fait la connection avec la database..):
+
+   ![Image-wordpress-custom](./images/Capture%20d’écran%202025-01-30%20à%2010.25.03.png) 
+
    3. Regarder le resultat de votre commande `terraform apply` et observer les logs de Cloud Run
+
+   Resultat : "No changes. Your infrastructure matches the configuration."
 
 3. Autoriser toutes les adresses IP à se connecter à notre base MySQL (sous réserve d'avoir l'utilisateur et le mot de passe évidemment)
    1. Pour le faire, exécuter la commande
@@ -210,9 +231,17 @@ Notre but, ne l'oublions pas est de déployer wordpress sur Cloud Run puis Kuber
    2. Cliquer sur l'URL de votre Cloud Run : similaire à https://serveur-wordpress-oreldffftq-uc.a.run.app
    3. Que voyez vous ? 🙈
 
+   ça marche ! mais ça a pris du temps...
+   ![wordpress-qui-marche](./images/Capture%20d’écran%202025-01-30%20à%2011.16.43.png)
+   
+
 
 6. Afin d'avoir un déploiement plus robuste pour l'entreprise et économiser les coûts du service CloudSQL, nous allons déployer Wordpress sur Kubernetes
+
    1. Rajouter le provider kubernetes en dépendance dans `required_providers`
+
+   fait !
+
    2. Configure le provider kubernetes pour se connecter à notre cluster GKE
 
       ```hcl
@@ -234,14 +263,41 @@ Notre but, ne l'oublions pas est de déployer wordpress sur Cloud Run puis Kuber
    ```
    Give me the terraform code to deploy wordpress on kubernetes using kubernetes provider. I want to use MySQL.
    ```
+   On attends l'adresse ip publique puis on se connecte : 
+
+   ![Image-wordpress-custom](./images/Capture%20d’écran%202025-01-30%20à%2011.14.23.png)
 
    4. Rendez vous sur l'adresse IP publique du service kubernetes Wordpress et vérifiez que Wordpress fonctionne 🔥
+
+   tout fonctionne correctement ! 🔥
+   ![Image-wordpress-custom](./images/Capture%20d’écran%202025-01-30%20à%2011.13.17.png)
 
 
 ## BONUS : Partie 4
 
 1. Utiliser Cloud Build pour appliquer les changements d'infrastructure
+
 2. Quelles critiques du TP pouvez vous faire ? Quels sont les éléments redondants de notre configuration ?
    1. Quels paramètres avons nous dû recopier plusieurs fois ? Comment pourrions nous faire pour ne pas avoir à les recopier ?
+
+   **Paramètres redondants :**
+- Les variables liées à la base de données sont répétées dans plusieurs endroits, comme :
+  - `WORDPRESS_DB_USER`
+  - `WORDPRESS_DB_PASSWORD`
+  - `WORDPRESS_DB_NAME`
+  - `WORDPRESS_DB_HOST`
+
+**Solution : Centraliser les variables**
+- Créez un fichier `variables.tf` pour définir les variables une fois et les réutiliser dans tout le code Terraform.
+
    2. Quel outil pouvons nous utiliser pour déployer Wordpress sur Kubernetes ? Faites les changements nécessaires dans votre code Terraform.
+
+   Helm est un gestionnaire de paquets pour Kubernetes qui simplifie le déploiement d'applications complexes comme WordPress. Il permet d'utiliser des "charts" prédéfinis pour configurer WordPress et MySQL en quelques lignes. On pourrait le mettre dans notre main.tf
+
    3. Comment pourrions nous enlever le mot de passe en clair dans notre code Terraform ? Quelle ressource Kubernetes pouvons nous utiliser pour le stocker ? Faites les changements nécessaires dans votre code Terraform.
+
+   Le mot de passe ilovedevops est stocké en clair dans le code Terraform, ce qui n'est pas sécurisé : solution -->  Utiliser les secrets Kubernetes.
+
+   Les fichiers terraform on été mis à jour.
+
+
