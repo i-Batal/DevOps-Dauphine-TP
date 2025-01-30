@@ -22,6 +22,9 @@ resource "google_project_service" "enable_apis" {
     "artifactregistry.googleapis.com",
     "sqladmin.googleapis.com",
     "cloudbuild.googleapis.com",
+
+    "run.googleapis.com" #ajouté pour la partie 3
+
   ])
 
   project = var.project_id
@@ -50,3 +53,53 @@ resource "google_sql_user" "wordpress_user" {
   instance = "main-instance"
   password = "ilovedevops"
 }
+
+resource "google_cloud_run_service" "wordpress" {
+  name     = "serveur-wordpress"
+  location = "us-central1"
+  project  = var.project_id
+
+  template {
+    spec {
+      containers {
+        image = "us-central1-docker.pkg.dev/tp5-devops-dauphine/website-tools/wordpress-custom" # Remplacez par votre image Docker
+        ports {
+          container_port = 80
+        }
+        env {
+          name  = "WORDPRESS_DB_USER"
+          value = "wordpress"
+        }
+        env {
+          name  = "WORDPRESS_DB_PASSWORD"
+          value = "ilovedevops"
+        }
+        env {
+          name  = "WORDPRESS_DB_NAME"
+          value = "wordpress"
+        }
+        env {
+          name  = "WORDPRESS_DB_HOST"
+          value = "104.154.20.193" # Adresse IP publique MySQL
+        }
+      }
+    }
+  }
+}
+
+data "google_iam_policy" "noauth" {
+  binding {
+    role = "roles/run.invoker"
+    members = [
+      "allUsers",
+    ]
+  }
+}
+
+resource "google_cloud_run_service_iam_policy" "noauth" {
+  location    = google_cloud_run_service.wordpress.location
+  project     = google_cloud_run_service.wordpress.project
+  service     = google_cloud_run_service.wordpress.name
+  policy_data = data.google_iam_policy.noauth.policy_data
+}
+
