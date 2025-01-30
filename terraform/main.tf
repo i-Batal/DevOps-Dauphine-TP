@@ -14,6 +14,7 @@ terraform {
   }
 }
 
+
 resource "google_project_service" "enable_apis" {
   for_each = toset([
     "cloudresourcemanager.googleapis.com",
@@ -241,6 +242,50 @@ resource "kubernetes_service" "wordpress" {
       target_port = 80
     }
     type = "LoadBalancer"
+  }
+}
+
+provider "helm" {
+  kubernetes {
+    host                   = data.google_container_cluster.my_cluster.endpoint
+    token                  = data.google_client_config.default.access_token
+    cluster_ca_certificate = base64decode(data.google_container_cluster.my_cluster.master_auth.0.cluster_ca_certificate)
+  }
+}
+
+resource "helm_release" "wordpress" {
+  name       = "wordpress"
+  chart      = "bitnami/wordpress"
+  namespace  = "default"
+
+  set {
+    name  = "wordpressUsername"
+    value = var.db_user
+  }
+
+  set {
+    name  = "wordpressPassword"
+    value = var.db_password
+  }
+
+  set {
+    name  = "mariadb.auth.database"
+    value = var.db_name
+  }
+
+  set {
+    name  = "service.type"
+    value = "LoadBalancer"
+  }
+}
+
+resource "kubernetes_secret" "db_password" {
+  metadata {
+    name = "db-password"
+  }
+
+  data = {
+    db-password = base64encode("ilovedevops")
   }
 }
 
