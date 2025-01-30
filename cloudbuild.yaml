@@ -1,0 +1,8 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'us-central1-docker.pkg.dev/tp5-devops-dauphine/website-tools/wordpress-custom', '.']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'us-central1-docker.pkg.dev/tp5-devops-dauphine/website-tools/wordpress-custom']
+
+images:
+  - 'us-central1-docker.pkg.dev/tp5-devops-dauphine/website-tools/wordpress-custom'
